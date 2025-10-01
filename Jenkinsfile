@@ -20,6 +20,7 @@ pipeline {
         stage('Build & Tag Docker Image') {
             steps {
                 script {
+                    sh 'printenv'
                     sh 'docker build -t manojkrishnappa/genai-openai:${GIT_COMMIT} .'
                 }
             }
