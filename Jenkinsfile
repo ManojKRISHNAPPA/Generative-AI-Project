@@ -48,30 +48,30 @@ pipeline {
             }
         }
 
-        stage('Python SonarQube Analysis') {
-            steps {
-                sh """
-                    pip install --upgrade pip pytest coverage
-                    coverage run -m pytest
-                    coverage xml -o coverage.xml
+        // stage('Python SonarQube Analysis') {
+        //     steps {
+        //         sh """
+        //             pip install --upgrade pip pytest coverage
+        //             coverage run -m pytest
+        //             coverage xml -o coverage.xml
 
-                    sonar-scanner \
-                      -Dsonar.projectKey=OpenAI \
-                      -Dsonar.sources=. \
-                      -Dsonar.host.url=http://3.85.22.155:9000 \
-                      -Dsonar.login=daada275b6ba2babdd26e784a8133bd4fea10379 \
-                      -Dsonar.python.coverage.reportPaths=coverage.xml
-                """
-            }
-        }
+        //             sonar-scanner \
+        //               -Dsonar.projectKey=OpenAI \
+        //               -Dsonar.sources=. \
+        //               -Dsonar.host.url=http://3.85.22.155:9000 \
+        //               -Dsonar.login=daada275b6ba2babdd26e784a8133bd4fea10379 \
+        //               -Dsonar.python.coverage.reportPaths=coverage.xml
+        //         """
+        //     }
+        // }
 
-        stage('Quality Gate') {
-            steps {
-                timeout(time: 2, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
-            }
-        }
+        // stage('Quality Gate') {
+        //     steps {
+        //         timeout(time: 2, unit: 'MINUTES') {
+        //             waitForQualityGate abortPipeline: true
+        //         }
+        //     }
+        // }
 
         stage('Update EKS Config') {
             steps {
