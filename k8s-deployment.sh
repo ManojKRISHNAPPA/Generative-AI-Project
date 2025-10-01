@@ -2,7 +2,7 @@
 
 #k8s-deployment.sh
 
-sed -i "s#replace#${imageName}#g" Deployment.yaml
+sed -i "s|replace|${IMAGE_NAME}|g" deployment.yaml
 # kubectl -n default get deployment ${deploymentName} > /dev/null
 
 # if [[ $? -ne 0 ]]; then
@@ -15,4 +15,4 @@ sed -i "s#replace#${imageName}#g" Deployment.yaml
 # fi
 
 
-kubectl -n microdegree apply -f Deployment.yaml
+kubectl -n microdegree apply -f deployment.yaml
