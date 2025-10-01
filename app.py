@@ -27,7 +27,8 @@ from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_ollama import OllamaLLM
+# OpenAI
+from langchain_openai import ChatOpenAI
 
 # Groq
 from langchain_groq import ChatGroq
@@ -40,7 +41,7 @@ load_dotenv()
 
 # Streamlit Page Config
 st.set_page_config(page_title="RAG Chatbot App", page_icon="🤖", layout="wide")
-st.title("🤖 Unified RAG Chatbot with LangChain, HuggingFace, Ollama & Groq")
+st.title("🤖 Unified RAG Chatbot with LangChain, HuggingFace, OpenAI & Groq")
 
 # Initialize session state variables
 if "store" not in st.session_state:
@@ -52,7 +53,7 @@ if "app_initialized" not in st.session_state:
 if "config_valid" not in st.session_state:
     st.session_state.config_valid = False
 
-def validate_api_keys(groq_key, hf_token, langchain_key, selected_mode):
+def validate_api_keys(groq_key, hf_token, openai_key, langchain_key, selected_mode):
     """Validate API keys based on selected mode"""
     validation_status = {
         "valid": False,
@@ -65,6 +66,9 @@ def validate_api_keys(groq_key, hf_token, langchain_key, selected_mode):
             validation_status["missing_keys"].append("Groq API Key")
         if not hf_token.strip():
             validation_status["missing_keys"].append("HuggingFace Token")
+    elif selected_mode == "General Chatbot (OpenAI)":
+        if not openai_key.strip():
+            validation_status["missing_keys"].append("OpenAI API Key")
     
     # LangChain API key is optional but recommended
     if langchain_key.strip():
@@ -105,10 +109,37 @@ def validate_groq_api_key(api_key):
         else:
             return False, f"API test failed: {str(e)[:100]}..."
 
-def initialize_environment(groq_key, hf_token, langchain_key):
+def validate_openai_api_key(api_key):
+    """Validate OpenAI API key by making a simple test request"""
+    if not api_key.strip():
+        return False, "API key is empty"
+    
+    try:
+        from langchain_openai import ChatOpenAI
+        # Test with minimal request
+        llm = ChatOpenAI(
+            model="gpt-4o-mini",
+            openai_api_key=api_key,
+            temperature=0,
+            max_tokens=10
+        )
+        # Simple test message
+        response = llm.invoke("Hi")
+        return True, "API key is valid"
+    except Exception as e:
+        error_msg = str(e).lower()
+        if "401" in error_msg or "unauthorized" in error_msg:
+            return False, "Invalid or expired API key"
+        elif "429" in error_msg:
+            return False, "Rate limit exceeded - API key is valid but quota reached"
+        else:
+            return False, f"API test failed: {str(e)[:100]}..."
+
+def initialize_environment(groq_key, hf_token, openai_key, langchain_key):
     """Initialize environment variables"""
     os.environ["GROQ_API_KEY"] = groq_key
     os.environ["HF_TOKEN"] = hf_token
+    os.environ["OPENAI_API_KEY"] = openai_key
     os.environ["LANGCHAIN_API_KEY"] = langchain_key
     os.environ["LANGCHAIN_TRACING_V2"] = "true"
     os.environ["LANGCHAIN_PROJECT"] = "Unified RAG Chatbot"
@@ -132,6 +163,13 @@ with st.sidebar:
         help="Required for Website RAG and PDF Chat modes (embeddings)"
     )
     
+    openai_api_key = st.text_input(
+        "OpenAI API Key *", 
+        value=os.environ.get("OPENAI_API_KEY", ""), 
+        type="password",
+        help="Required for OpenAI GPT models"
+    )
+    
     langchain_api_key = st.text_input(
         "LangChain API Key (Optional)", 
         value=os.environ.get("LANGCHAIN_API_KEY", ""), 
@@ -142,21 +180,21 @@ with st.sidebar:
     st.header("⚙️ Mode & Model Settings")
     mode = st.radio(
         "Select Mode:", 
-        ["Chat with Websites (RAG)", "Chat with PDFs (RAG)", "General Chatbot (Ollama)"],
+        ["Chat with Websites (RAG)", "Chat with PDFs (RAG)", "General Chatbot (OpenAI)"],
         help="Choose your preferred interaction mode"
     )
 
-    if mode == "General Chatbot (Ollama)":
-        st.subheader("Ollama Settings")
-        llm_choice = st.selectbox("Choose Ollama Model", ["mistral", "gemma2"])
+    if mode == "General Chatbot (OpenAI)":
+        st.subheader("OpenAI Settings")
+        llm_choice = st.selectbox("Choose OpenAI Model", ["gpt-4o-mini", "gpt-3.5-turbo", "gpt-4o"])
         temperature = st.slider("Temperature", 0.0, 1.0, 0.7)
-        max_tokens = st.slider("Max Tokens", 50, 500, 150)
+        max_tokens = st.slider("Max Tokens", 50, 2000, 500)
     
     # Validation and initialization section
     st.header("🚀 Initialize App")
     
     # Validate configuration
-    validation = validate_api_keys(groq_api_key, hf_token, langchain_api_key, mode)
+    validation = validate_api_keys(groq_api_key, hf_token, openai_api_key, langchain_api_key, mode)
     st.session_state.config_valid = validation["valid"]
     
     # Show validation status
@@ -165,11 +203,20 @@ with st.sidebar:
     else:
         st.warning(validation["message"])
     
-    # Add API key test button for Groq
+    # Add API key test buttons
     if groq_api_key.strip() and mode in ["Chat with Websites (RAG)", "Chat with PDFs (RAG)"]:
         if st.button("🔍 Test Groq API Key", help="Verify your API key works"):
             with st.spinner("Testing Groq API key..."):
                 is_valid, message = validate_groq_api_key(groq_api_key)
+                if is_valid:
+                    st.success(f"✅ {message}")
+                else:
+                    st.error(f"❌ {message}")
+    
+    if openai_api_key.strip() and mode == "General Chatbot (OpenAI)":
+        if st.button("🔍 Test OpenAI API Key", help="Verify your API key works"):
+            with st.spinner("Testing OpenAI API key..."):
+                is_valid, message = validate_openai_api_key(openai_api_key)
                 if is_valid:
                     st.success(f"✅ {message}")
                 else:
@@ -183,7 +230,7 @@ with st.sidebar:
     ):
         if validation["valid"]:
             # Initialize environment
-            initialize_environment(groq_api_key, hf_token, langchain_api_key)
+            initialize_environment(groq_api_key, hf_token, openai_api_key, langchain_api_key)
             st.session_state.app_initialized = True
             st.success("✅ App initialized successfully!")
             st.rerun()
@@ -233,12 +280,12 @@ if not st.session_state.app_initialized:
     
     with col3:
         st.markdown("""
-        ### 💬 General Chatbot (Ollama)
-        - Local LLM conversation
-        - No API keys required
+        ### 💬 General Chatbot (OpenAI)
+        - GPT-4o-mini powered conversation
+        - State-of-the-art language model
         - Adjustable parameters
         
-        **Required:** Local Ollama installation
+        **Required:** OpenAI API Key
         """)
     
     st.markdown("---")
@@ -611,26 +658,40 @@ else:
                         )
                         st.chat_message("assistant").write(response["answer"])
 
-    elif mode == "General Chatbot (Ollama)":
-        st.subheader("💬 General Chatbot using Ollama")
+    elif mode == "General Chatbot (OpenAI)":
+        st.subheader("💬 General Chatbot using OpenAI GPT")
 
-        if "messages" not in st.session_state:
-            st.session_state.messages = []
+        if not openai_api_key:
+            st.warning("Please enter your OpenAI API Key in the sidebar to proceed.")
+        else:
+            if "messages" not in st.session_state:
+                st.session_state.messages = []
 
-        for message in st.session_state.messages:
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"])
+            for message in st.session_state.messages:
+                with st.chat_message(message["role"]):
+                    st.markdown(message["content"])
 
-        if prompt := st.chat_input("What is up?"):
-            st.session_state.messages.append({"role": "user", "content": prompt})
-            with st.chat_message("user"):
-                st.markdown(prompt)
+            if prompt := st.chat_input("What is up?"):
+                st.session_state.messages.append({"role": "user", "content": prompt})
+                with st.chat_message("user"):
+                    st.markdown(prompt)
 
-            with st.chat_message("assistant"):
-                llm = OllamaLLM(model=llm_choice, temperature=temperature)
-                
-                # This is a simplified chain; for more complex scenarios, consider using ChatPromptTemplate
-                response = llm.invoke(prompt)
-                st.markdown(response)
-                
-            st.session_state.messages.append({"role": "assistant", "content": response})
+                with st.chat_message("assistant"):
+                    try:
+                        llm = ChatOpenAI(
+                            model=llm_choice,
+                            temperature=temperature,
+                            max_tokens=max_tokens,
+                            openai_api_key=openai_api_key
+                        )
+                        
+                        response = llm.invoke(prompt)
+                        # Extract content from AIMessage response
+                        response_content = response.content if hasattr(response, 'content') else str(response)
+                        st.markdown(response_content)
+                        
+                        st.session_state.messages.append({"role": "assistant", "content": response_content})
+                        
+                    except Exception as e:
+                        st.error(f"❌ Error generating response: {str(e)}")
+                        st.info("Please check your OpenAI API key and try again.")

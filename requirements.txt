@@ -18,7 +18,7 @@ langchain-community>=0.0.20
 langchain-text-splitters>=0.0.1
 langchain-groq>=0.1.0
 langchain-huggingface>=0.0.3
-langchain-ollama>=0.3.8
+langchain-openai>=0.1.0
 langchain-chroma>=0.1.0
 
 # Vector store and embeddings
