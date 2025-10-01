@@ -15,4 +15,4 @@ sed -i "s#replace#${imageName}#g" Deployment.yml
 # fi
 
 
-kubectl -n default apply -f Deployment.yml
+kubectl -n microdegree apply -f Deployment.yml
