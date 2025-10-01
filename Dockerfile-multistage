@@ -60,7 +60,6 @@ RUN mkdir -p /app/tmp /app/.streamlit /app/.cache && \
 # Copy application files
 COPY --chown=appuser:appuser app.py .
 COPY --chown=appuser:appuser test_openai.py .
-COPY --chown=appuser:appuser MIGRATION_SUMMARY.md .
 
 # Create Streamlit config
 RUN echo '[server]\n\
