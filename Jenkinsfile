@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         AWS_REGION = "us-east-1"
-        CLUSTER_NAME = "microdegree-cluster"
+        CLUSTER_NAME = "microdegree"
         NAMESPACE = "microdegree"
         DEPLOYMENT_NAME = "openai-chatbot"
         SERVICE_NAME = "openai-chatbot-service"
@@ -16,36 +16,34 @@ pipeline {
                 git branch: 'main', url: 'https://github.com/ManojKRISHNAPPA/Generative-AI-Project.git'
             }
         }
+
         stage('Build & Tag Docker Image') {
             steps {
                 script {
-                    sh 'docker build -t manojkrishnappa/genai-openai:""$GIT_COMMIT"" .'
+                    sh 'docker build -t manojkrishnappa/genai-openai:${GIT_COMMIT} .'
                 }
             }
         }
+
         stage('Docker Image Scan') {
             steps {
                 script {
-                    sh "trivy image --format table -o trivy-image-report.html manojkrishnappa/genai-openai:""$GIT_COMMIT"""
+                    sh 'trivy image --format table -o trivy-image-report.html manojkrishnappa/genai-openai:${GIT_COMMIT}'
                 }
             }
         }
 
         stage('Login to Docker Hub') {
             steps {
-                script {
-                    withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                        sh "echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin"
-                    }
+                withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                    sh "echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin"
                 }
             }
         }
 
         stage('Push Docker Image') {
             steps {
-                script {
-                    sh 'docker push manojkrishnappa/genai-openai:""$GIT_COMMIT""'
-                }
+                sh 'docker push manojkrishnappa/genai-openai:${GIT_COMMIT}'
             }
         }
 
@@ -83,9 +81,13 @@ pipeline {
         stage('Deploy to EKS') {
             steps {
                 withKubeConfig(
+                    caCertificate: '',
+                    clusterName: 'microdegree',
+                    contextName: '',
                     credentialsId: 'kube',
-                    clusterName: "${CLUSTER_NAME}",
-                    namespace: "${NAMESPACE}"
+                    namespace: "${NAMESPACE}",
+                    restrictKubeConfigAccess: false,
+                    serverUrl: 'https://E8A1E7C9DE8BC222DA09253C5200F1E3.gr7.us-east-1.eks.amazonaws.com'
                 ) {
                     sh "sed -i 's|replace|${IMAGE_NAME}|g' Deployment.yaml"
                     sh "kubectl apply -f Deployment.yaml -n ${NAMESPACE}"
@@ -97,10 +99,15 @@ pipeline {
         stage('Verify Deployment') {
             steps {
                 withKubeConfig(
+                    caCertificate: '',
+                    clusterName: 'microdegree',
+                    contextName: '',
                     credentialsId: 'kube',
-                    clusterName: "${CLUSTER_NAME}",
-                    namespace: "${NAMESPACE}"
+                    namespace: "${NAMESPACE}",
+                    restrictKubeConfigAccess: false,
+                    serverUrl: 'https://E8A1E7C9DE8BC222DA09253C5200F1E3.gr7.us-east-1.eks.amazonaws.com'
                 ) {
+                    sh "kubectl get deployment -n ${NAMESPACE}"
                     sh "kubectl get pods -n ${NAMESPACE}"
                     sh "kubectl get svc -n ${NAMESPACE}"
                 }
@@ -120,11 +127,11 @@ pipeline {
                     <html>
                     <body>
                     <div style="border: 4px solid ${bannerColor}; padding: 10px;">
-                    <h2>${jobName} - Build ${buildNumber}</h2>
-                    <div style="background-color: ${bannerColor}; padding: 10px;">
-                    <h3 style="color: white;">Pipeline Status: ${pipelineStatus.toUpperCase()}</h3>
-                    </div>
-                    <p>Check the <a href="${BUILD_URL}">console output</a>.</p>
+                        <h2>${jobName} - Build ${buildNumber}</h2>
+                        <div style="background-color: ${bannerColor}; padding: 10px;">
+                            <h3 style="color: white;">Pipeline Status: ${pipelineStatus.toUpperCase()}</h3>
+                        </div>
+                        <p>Check the <a href="${BUILD_URL}">console output</a>.</p>
                     </div>
                     </body>
                     </html>
