@@ -1,11 +1,11 @@
 # ===========================
-# Stage 1: Build environment
+# Stage 1: Builder
 # ===========================
 FROM python:3.11-slim AS builder
 
 WORKDIR /app
 
-# Install system deps
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     curl \
     git \
@@ -16,33 +16,32 @@ RUN apt-get update && apt-get install -y \
 # Install Ollama
 RUN curl -fsSL https://ollama.com/install.sh | sh
 
-# Copy requirements and install dependencies
+# Copy requirements and install Python packages
 COPY requirements.txt .
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
-# Preload Ollama models (so container has them baked in)
-RUN ollama pull mistral && \
-    ollama pull gemma2
+# Preload Mistral-7B model
+RUN ollama pull mistral
 
-# Copy app code
+# Copy application code
 COPY . .
 
 # ===========================
-# Stage 2: Final runtime image
+# Stage 2: Runtime
 # ===========================
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install runtime deps only (supervisor + curl for Ollama healthcheck)
+# Install minimal runtime dependencies
 RUN apt-get update && apt-get install -y \
     curl \
     supervisor \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy installed Python packages from builder
+# Copy installed Python packages
 COPY --from=builder /install /usr/local
-# Copy Ollama binaries and models
+# Copy Ollama binary and model
 COPY --from=builder /usr/local/bin/ollama /usr/local/bin/ollama
 COPY --from=builder /root/.ollama /root/.ollama
 
@@ -53,5 +52,5 @@ COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 # Expose ports
 EXPOSE 8501 11434
 
-# Run both Ollama + Streamlit via supervisor
+# Run supervisor (Ollama + Streamlit)
 CMD ["/usr/bin/supervisord"]
