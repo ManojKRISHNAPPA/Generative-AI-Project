@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openai-chatbot
+  labels:
+    app: openai-chatbot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openai-chatbot
+  template:
+    metadata:
+      labels:
+        app: openai-chatbot
+    spec:
+      containers:
+      - name: openai-chatbot
+        image: replace
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8501
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "2Gi"
+          limits:
+            cpu: "2"
+            memory: "4Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: openai-chatbot-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: openai-chatbot
+  ports:
+  - protocol: TCP
+    port: 80 # External port
+    targetPort: 8501 # Container port
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: openai-chatbot-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: openai-chatbot
+  minReplicas: 5
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50
