@@ -186,7 +186,7 @@ with st.sidebar:
 
     if mode == "General Chatbot (OpenAI)":
         st.subheader("OpenAI Settings")
-        llm_choice = st.selectbox("Choose OpenAI Model", ["gpt-4o-mini", "gpt-3.5-turbo", "gpt-4o"])
+        llm_choice = st.selectbox("Choose OpenAI Model", ["gpt-4o-mini", "gpt-3.5-turbo", "gpt-4o","gpt-5"])
         temperature = st.slider("Temperature", 0.0, 1.0, 0.7)
         max_tokens = st.slider("Max Tokens", 50, 2000, 500)
     
