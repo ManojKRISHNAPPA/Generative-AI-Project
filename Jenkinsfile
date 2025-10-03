@@ -90,7 +90,7 @@ pipeline {
                     restrictKubeConfigAccess: false,
                     serverUrl: 'https://AB2AD8E7E396070F02E8CEC4D6A0D7E9.gr7.us-east-1.eks.amazonaws.com'
                 ) {
-                    sh "sed -i 's|replace|${IMAGE_NAME}|g' Deployment.yaml"
+                    sh "sed -i 's|replace|${IMAGE_NAME}|g' deployment.yaml"
                     sh "kubectl apply -f Deployment.yaml -n ${NAMESPACE}"
                     sh "kubectl rollout status deployment/${DEPLOYMENT_NAME} -n ${NAMESPACE}"
                 }
