@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         AWS_REGION = "us-east-1"
-        CLUSTER_NAME = "microdegree"
+        CLUSTER_NAME = "microdegree-cluster"
         NAMESPACE = "microdegree"
         DEPLOYMENT_NAME = "openai-chatbot"
         SERVICE_NAME = "openai-chatbot-service"
@@ -83,12 +83,12 @@ pipeline {
             steps {
                 withKubeConfig(
                     caCertificate: '',
-                    clusterName: 'microdegree',
+                    clusterName: 'microdegree-cluster',
                     contextName: '',
                     credentialsId: 'kube',
                     namespace: "${NAMESPACE}",
                     restrictKubeConfigAccess: false,
-                    serverUrl: 'https://E8A1E7C9DE8BC222DA09253C5200F1E3.gr7.us-east-1.eks.amazonaws.com'
+                    serverUrl: 'https://AB2AD8E7E396070F02E8CEC4D6A0D7E9.gr7.us-east-1.eks.amazonaws.com'
                 ) {
                     sh "sed -i 's|replace|${IMAGE_NAME}|g' Deployment.yaml"
                     sh "kubectl apply -f Deployment.yaml -n ${NAMESPACE}"
@@ -101,12 +101,12 @@ pipeline {
             steps {
                 withKubeConfig(
                     caCertificate: '',
-                    clusterName: 'microdegree',
+                    clusterName: 'microdegree-cluster',
                     contextName: '',
                     credentialsId: 'kube',
                     namespace: "${NAMESPACE}",
                     restrictKubeConfigAccess: false,
-                    serverUrl: 'https://E8A1E7C9DE8BC222DA09253C5200F1E3.gr7.us-east-1.eks.amazonaws.com'
+                    serverUrl: 'https://AB2AD8E7E396070F02E8CEC4D6A0D7E9.gr7.us-east-1.eks.amazonaws.com'
                 ) {
                     sh "kubectl get deployment -n ${NAMESPACE}"
                     sh "kubectl get pods -n ${NAMESPACE}"
@@ -141,7 +141,7 @@ pipeline {
                 emailext (
                     subject: "${jobName} - Build ${buildNumber} - ${pipelineStatus.toUpperCase()}",
                     body: body,
-                    to: 'rohitpatil.cse@gmail.com,manojdevopstest@gmail.com',
+                    to: 'manojdevopstest@gmail.com',
                     from: 'manojdevopstest@gmail.com',
                     replyTo: 'manojdevopstest@gmail.com',
                     mimeType: 'text/html',
